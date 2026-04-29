@@ -23,6 +23,57 @@ static int isRParenToken(const Token *t) {
     return strcmp(t->type, "RPAREN") == 0;
 }
 
+// Parse an expression until SEMICOLON (does not consume the SEMICOLON).
+// Grammar (informal): expr := ( '(' )* value ( (')' | op value | op '(' ... ) )*
+// This is a simple validator (not precedence-aware), good for first-year projects.
+static int parseExpressionUntilSemicolon(Token tokens[], int count, int *i, FILE *fout) {
+    int expectOperand = 1;
+    int parenDepth = 0;
+
+    while (*i < count && strcmp(tokens[*i].type, "SEMICOLON") != 0) {
+        if (expectOperand) {
+            if (isLParenToken(&tokens[*i])) {
+                parenDepth++;
+                (*i)++;
+                continue;
+            }
+            if (!isValueToken(&tokens[*i])) {
+                syntaxError(fout, "Invalid expression");
+                return 0;
+            }
+            expectOperand = 0;
+            (*i)++;
+        } else {
+            if (isRParenToken(&tokens[*i])) {
+                if (parenDepth <= 0) {
+                    syntaxError(fout, "Unmatched ')'");
+                    return 0;
+                }
+                parenDepth--;
+                (*i)++;
+                continue;
+            }
+            if (!isMathOperatorToken(&tokens[*i])) {
+                syntaxError(fout, "Expected operator");
+                return 0;
+            }
+            expectOperand = 1;
+            (*i)++;
+        }
+    }
+
+    if (expectOperand) {
+        syntaxError(fout, "Expression ends with operator");
+        return 0;
+    }
+    if (parenDepth != 0) {
+        syntaxError(fout, "Unmatched '('");
+        return 0;
+    }
+
+    return 1;
+}
+
 int parse(Token tokens[], int count) {
     FILE *fout = fopen("data/output.txt", "a");
     if (!fout) return 0;
@@ -33,6 +84,13 @@ int parse(Token tokens[], int count) {
 
         // Declaration
         if(strcmp(tokens[i].type, "KEYWORD") == 0) {
+
+            // Expect: int IDENTIFIER = <expression> ;
+            if (strcmp(tokens[i].value, "int") != 0) {
+                syntaxError(fout, "Unknown keyword");
+                fclose(fout);
+                return 0;
+            }
 
             if(i+4 >= count) {
                 syntaxError(fout, "Incomplete declaration");
@@ -46,25 +104,24 @@ int parse(Token tokens[], int count) {
                 return 0;
             }
 
-            if(strcmp(tokens[i+2].value, "=") != 0) {
+            if(strcmp(tokens[i+2].type, "OPERATOR") != 0 || strcmp(tokens[i+2].value, "=") != 0) {
                 syntaxError(fout, "Expected '='");
                 fclose(fout);
                 return 0;
             }
 
-            if(!isValueToken(&tokens[i+3])) {
-                syntaxError(fout, "Invalid value");
+            i += 3; // now at start of expression
+            if (!parseExpressionUntilSemicolon(tokens, count, &i, fout)) {
                 fclose(fout);
                 return 0;
             }
 
-            if(strcmp(tokens[i+4].type, "SEMICOLON") != 0) {
+            if(i >= count || strcmp(tokens[i].type, "SEMICOLON") != 0) {
                 syntaxError(fout, "Missing ';' after declaration");
                 fclose(fout);
                 return 0;
             }
-
-            i += 5;
+            i++; // consume ';'
         }
 
         // Assignment
@@ -78,52 +135,7 @@ int parse(Token tokens[], int count) {
 
             i += 2;
 
-            // Expression: supports values, + - * /, and parentheses.
-            int expectOperand = 1;
-            int parenDepth = 0;
-
-            while (i < count && strcmp(tokens[i].type, "SEMICOLON") != 0) {
-                if (expectOperand) {
-                    if (isLParenToken(&tokens[i])) {
-                        parenDepth++;
-                        i++;
-                        continue;
-                    }
-                    if (!isValueToken(&tokens[i])) {
-                        syntaxError(fout, "Invalid expression");
-                        fclose(fout);
-                        return 0;
-                    }
-                    expectOperand = 0;
-                    i++;
-                } else {
-                    if (isRParenToken(&tokens[i])) {
-                        if (parenDepth <= 0) {
-                            syntaxError(fout, "Unmatched ')'");
-                            fclose(fout);
-                            return 0;
-                        }
-                        parenDepth--;
-                        i++;
-                        continue;
-                    }
-                    if (!isMathOperatorToken(&tokens[i])) {
-                        syntaxError(fout, "Expected operator");
-                        fclose(fout);
-                        return 0;
-                    }
-                    expectOperand = 1;
-                    i++;
-                }
-            }
-
-            if (expectOperand) {
-                syntaxError(fout, "Expression ends with operator");
-                fclose(fout);
-                return 0;
-            }
-            if (parenDepth != 0) {
-                syntaxError(fout, "Unmatched '('");
+            if (!parseExpressionUntilSemicolon(tokens, count, &i, fout)) {
                 fclose(fout);
                 return 0;
             }
