@@ -18,32 +18,73 @@ int isNumber(char *str) {
 }
 
 int tokenize(char *code, Token tokens[]) {
-    char *token = strtok(code, " ;=+\n");
     int count = 0;
-
     FILE *fout = fopen("output.txt", "a");
+    int i = 0;
 
-    while(token != NULL) {
-
-        if(isKeyword(token))
-            strcpy(tokens[count].type, "KEYWORD");
-
-        else if(isNumber(token))
-            strcpy(tokens[count].type, "NUMBER");
-
-        else if(isalpha(token[0]))
-            strcpy(tokens[count].type, "IDENTIFIER");
-
-        else {
-            lexicalError(fout, token);
-            token = strtok(NULL, " ;=+\n");
+    while(code[i] != '\0') {
+        if(isspace(code[i])) {
+            i++;
             continue;
         }
 
-        strcpy(tokens[count].value, token);
-        count++;
+        if(code[i] == ';') {
+            strcpy(tokens[count].type, "SEMICOLON");
+            strcpy(tokens[count].value, ";");
+            count++;
+            i++;
+            continue;
+        }
 
-        token = strtok(NULL, " ;=+\n");
+        if(code[i] == '=' || code[i] == '+' || code[i] == '-' || code[i] == '*' || code[i] == '/') {
+            strcpy(tokens[count].type, "OPERATOR");
+            char op[2] = {code[i], '\0'};
+            strcpy(tokens[count].value, op);
+            count++;
+            i++;
+            continue;
+        }
+
+        if(isalpha(code[i])) {
+            int j = 0;
+            char buffer[50];
+            while(isalpha(code[i]) || isdigit(code[i])) {
+                buffer[j++] = code[i++];
+            }
+            buffer[j] = '\0';
+
+            if(isKeyword(buffer))
+                strcpy(tokens[count].type, "KEYWORD");
+            else
+                strcpy(tokens[count].type, "IDENTIFIER");
+            
+            strcpy(tokens[count].value, buffer);
+            count++;
+            continue;
+        }
+
+        if(isdigit(code[i]) || code[i] == '.') {
+            int j = 0;
+            char buffer[50];
+            while(isdigit(code[i]) || code[i] == '.') {
+                buffer[j++] = code[i++];
+            }
+            buffer[j] = '\0';
+
+            if(isNumber(buffer)) {
+                strcpy(tokens[count].type, "NUMBER");
+                strcpy(tokens[count].value, buffer);
+                count++;
+            } else {
+                lexicalError(fout, buffer);
+            }
+            continue;
+        }
+
+        // Unknown character
+        char unknown[2] = {code[i], '\0'};
+        lexicalError(fout, unknown);
+        i++;
     }
 
     fclose(fout);
