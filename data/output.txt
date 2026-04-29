@@ -1,20 +1,12 @@
 TOKENS:
 KEYWORD : int
-IDENTIFIER : k
+IDENTIFIER : a
 OPERATOR : =
-NUMBER : 9
-OPERATOR : +
-NUMBER : 9
-OPERATOR : *
-LPAREN : (
-NUMBER : 4
-OPERATOR : +
-NUMBER : 5
-RPAREN : )
+NUMBER : 10
 SEMICOLON : ;
-
-Syntax Correct
-
-Symbol Table:
-Name	Type	Value
-k	variable	-
+KEYWORD : int
+IDENTIFIER : a
+OPERATOR : =
+NUMBER : 20
+SEMICOLON : ;
+Semantic Error: Duplicate variable declaration

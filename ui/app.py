@@ -8,7 +8,7 @@ PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 INPUT_PATH = os.path.join(DATA_DIR, "input.txt")
 OUTPUT_PATH = os.path.join(DATA_DIR, "output.txt")
-EXE_PATH = os.path.join(PROJECT_DIR, "mini_compiler.exe")
+EXE_PATH = os.path.join(PROJECT_DIR, "compiler")
 
 # ---------- FILE FUNCTIONS ----------
 
@@ -103,3 +103,6 @@ def run_app():
     output_box.pack()
 
     root.mainloop()
+
+if __name__ == "__main__":
+    run_app()

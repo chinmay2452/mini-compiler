@@ -80,52 +80,15 @@ int main() {
         fprintf(fout, "%s : %s\n", tokens[i].type, tokens[i].value);
     }
 
+    fclose(fout); // close before parsing to avoid file pointer conflicts
+
     if (parse(tokens, count)) {
-        fprintf(fout, "\nSyntax Correct\n");
-
-        // Build symbol table:
-        // - Add every IDENTIFIER once (type = "variable", value = "-")
-        // - Bonus: store value for simple assignments: a = 2; or int a = 2;
-        for (int i = 0; i < count; i++) {
-            if (strcmp(tokens[i].type, "IDENTIFIER") == 0) {
-                addSymbol("variable", tokens[i].value, "-");
-            }
-        }
-
-        for (int i = 0; i + 3 < count; i++) {
-            // Pattern: IDENTIFIER = NUMBER ;
-            if (strcmp(tokens[i].type, "IDENTIFIER") == 0 &&
-                strcmp(tokens[i + 1].type, "OPERATOR") == 0 &&
-                strcmp(tokens[i + 1].value, "=") == 0 &&
-                strcmp(tokens[i + 2].type, "NUMBER") == 0 &&
-                strcmp(tokens[i + 3].type, "SEMICOLON") == 0) {
-                setSymbolValue(tokens[i].value, tokens[i + 2].value);
-            }
-
-            // Pattern: int IDENTIFIER = NUMBER ;
-            // Only set a value when the RHS is a single literal number (no expression).
-            if (i + 4 < count &&
-                strcmp(tokens[i].type, "KEYWORD") == 0 &&
-                strcmp(tokens[i].value, "int") == 0 &&
-                strcmp(tokens[i + 1].type, "IDENTIFIER") == 0 &&
-                strcmp(tokens[i + 2].type, "OPERATOR") == 0 &&
-                strcmp(tokens[i + 2].value, "=") == 0 &&
-                strcmp(tokens[i + 3].type, "NUMBER") == 0 &&
-                strcmp(tokens[i + 4].type, "SEMICOLON") == 0) {
-                // Ensure identifier exists and set its value.
-                addSymbol("variable", tokens[i + 1].value, "-");
-                setSymbolValue(tokens[i + 1].value, tokens[i + 3].value);
-            }
-        }
-
-        if (symbolCount() > 0) {
-            fprintf(fout, "\nSymbol Table:\n");
+        fout = fopen("data/output.txt", "a");
+        if (fout) {
+            fprintf(fout, "\nSyntax Correct\n\n");
             printTableToFile(fout);
+            fclose(fout);
         }
-    } else {
-        fprintf(fout, "\nSyntax Error\n");
     }
-
-    fclose(fout);
     return 0;
 }

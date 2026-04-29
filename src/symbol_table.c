@@ -13,20 +13,23 @@ typedef struct Symbol {
 static Symbol table[MAX_SYMBOLS];
 static int count = 0;
 
-static int findIndex(const char *name) {
+int exists(char *name) {
+    for (int i = 0; i < count; i++) {
+        if (strcmp(table[i].name, name) == 0) return 1;
+    }
+    return 0;
+}
+
+static int findIndex(char *name) {
     for (int i = 0; i < count; i++) {
         if (strcmp(table[i].name, name) == 0) return i;
     }
     return -1;
 }
 
-int symbolCount(void) {
-    return count;
-}
-
-void addSymbol(const char *type, const char *name, const char *value) {
+void addSymbol(char *type, char *name, char *value) {
     if (!name || name[0] == '\0') return;
-    if (findIndex(name) >= 0) return; // ignore duplicates
+    if (exists(name)) return; // ignore duplicates
     if (count >= MAX_SYMBOLS) return;
 
     strncpy(table[count].name, name, sizeof(table[count].name) - 1);
@@ -41,11 +44,10 @@ void addSymbol(const char *type, const char *name, const char *value) {
     count++;
 }
 
-void setSymbolValue(const char *name, const char *value) {
+void updateSymbol(char *name, char *value) {
     if (!name || name[0] == '\0') return;
     int idx = findIndex(name);
     if (idx < 0) {
-        addSymbol("variable", name, value ? value : "-");
         return;
     }
 
@@ -54,12 +56,9 @@ void setSymbolValue(const char *name, const char *value) {
 }
 
 void printTableToFile(FILE *fout) {
+    fprintf(fout, "Symbol Table:\n");
     fprintf(fout, "Name\tType\tValue\n");
     for (int i = 0; i < count; i++) {
         fprintf(fout, "%s\t%s\t%s\n", table[i].name, table[i].type, table[i].value);
     }
-}
-
-void printTable() {
-    printTableToFile(stdout);
 }
