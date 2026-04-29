@@ -1,0 +1,8 @@
+TOKENS:
+KEYWORD int
+IDENTIFIER x
+OPERATOR =
+NUMBER 10
+SEMICOLON ;
+
+Parsing Successful ✅
