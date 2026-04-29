@@ -23,7 +23,7 @@ int exists(char *name) {
 
 void addSymbol(char *type, char *name, char *value) {
 
-    FILE *fout = fopen("output.txt", "a");
+    FILE *fout = fopen("data/output.txt", "a");
 
     if(exists(name)) {
         semanticError(fout, "Duplicate variable");

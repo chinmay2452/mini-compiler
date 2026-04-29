@@ -4,89 +4,98 @@
 #include "../include/lexer.h"
 #include "../include/error.h"
 
-int isKeyword(char *str) {
-    return strcmp(str, "int") == 0 || strcmp(str, "float") == 0;
+static int isIdentStart(unsigned char c) {
+    return isalpha(c) || c == '_';
 }
 
-int isNumber(char *str) {
-    int dot = 0;
-    for(int i = 0; str[i]; i++) {
-        if(str[i] == '.') dot++;
-        else if(!isdigit(str[i])) return 0;
-    }
-    return dot <= 1;
+static int isIdentPart(unsigned char c) {
+    return isalnum(c) || c == '_';
+}
+
+static int isKeywordInt(const char *str) {
+    return strcmp(str, "int") == 0;
+}
+
+static void pushToken(Token tokens[], int *count, const char *type, const char *value) {
+    if (*count >= MAX_TOKENS) return;
+    strncpy(tokens[*count].type, type, sizeof(tokens[*count].type) - 1);
+    tokens[*count].type[sizeof(tokens[*count].type) - 1] = '\0';
+    strncpy(tokens[*count].value, value, sizeof(tokens[*count].value) - 1);
+    tokens[*count].value[sizeof(tokens[*count].value) - 1] = '\0';
+    (*count)++;
 }
 
 int tokenize(char *code, Token tokens[]) {
     int count = 0;
-    FILE *fout = fopen("output.txt", "a");
     int i = 0;
 
-    while(code[i] != '\0') {
-        if(isspace(code[i])) {
+    while (code[i] != '\0') {
+        unsigned char c = (unsigned char)code[i];
+
+        if (isspace(c)) {
             i++;
             continue;
         }
 
-        if(code[i] == ';') {
-            strcpy(tokens[count].type, "SEMICOLON");
-            strcpy(tokens[count].value, ";");
-            count++;
+        if (c == ';') {
+            pushToken(tokens, &count, "SEMICOLON", ";");
             i++;
             continue;
         }
 
-        if(code[i] == '=' || code[i] == '+' || code[i] == '-' || code[i] == '*' || code[i] == '/') {
-            strcpy(tokens[count].type, "OPERATOR");
-            char op[2] = {code[i], '\0'};
-            strcpy(tokens[count].value, op);
-            count++;
+        if (c == '(') {
+            pushToken(tokens, &count, "LPAREN", "(");
             i++;
             continue;
         }
 
-        if(isalpha(code[i])) {
+        if (c == ')') {
+            pushToken(tokens, &count, "RPAREN", ")");
+            i++;
+            continue;
+        }
+
+        if (c == '=' || c == '+' || c == '-' || c == '*' || c == '/') {
+            char op[2] = {(char)c, '\0'};
+            pushToken(tokens, &count, "OPERATOR", op);
+            i++;
+            continue;
+        }
+
+        if (isIdentStart(c)) {
             int j = 0;
             char buffer[50];
-            while(isalpha(code[i]) || isdigit(code[i])) {
-                buffer[j++] = code[i++];
+            while (code[i] != '\0' && isIdentPart((unsigned char)code[i])) {
+                if (j < (int)sizeof(buffer) - 1) buffer[j++] = code[i];
+                i++;
             }
             buffer[j] = '\0';
 
-            if(isKeyword(buffer))
-                strcpy(tokens[count].type, "KEYWORD");
-            else
-                strcpy(tokens[count].type, "IDENTIFIER");
-            
-            strcpy(tokens[count].value, buffer);
-            count++;
+            if (isKeywordInt(buffer)) pushToken(tokens, &count, "KEYWORD", buffer);
+            else pushToken(tokens, &count, "IDENTIFIER", buffer);
             continue;
         }
 
-        if(isdigit(code[i]) || code[i] == '.') {
+        if (isdigit(c)) {
             int j = 0;
             char buffer[50];
-            while(isdigit(code[i]) || code[i] == '.') {
-                buffer[j++] = code[i++];
+            while (code[i] != '\0' && isdigit((unsigned char)code[i])) {
+                if (j < (int)sizeof(buffer) - 1) buffer[j++] = code[i];
+                i++;
             }
             buffer[j] = '\0';
 
-            if(isNumber(buffer)) {
-                strcpy(tokens[count].type, "NUMBER");
-                strcpy(tokens[count].value, buffer);
-                count++;
-            } else {
-                lexicalError(fout, buffer);
-            }
+            pushToken(tokens, &count, "NUMBER", buffer);
             continue;
         }
 
-        // Unknown character
-        char unknown[2] = {code[i], '\0'};
-        lexicalError(fout, unknown);
+        // Unknown character: report and skip (keeps token stream aligned for valid inputs).
+        {
+            char unknown[2] = {(char)c, '\0'};
+            lexicalError(stderr, unknown);
+        }
         i++;
     }
 
-    fclose(fout);
     return count;
 }
